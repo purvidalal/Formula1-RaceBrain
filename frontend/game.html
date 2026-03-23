@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RaceBrain - F1 Strategy Game</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: linear-gradient(135deg, #0d0d0d 0%, #1a0000 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 400px;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .panel {
+            background: rgba(26, 26, 26, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        .player-panel { border-left: 5px solid #e10600; }
+        .ai-panel { border-left: 5px solid #ffd700; }
+        .action-btn {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            background: linear-gradient(135deg, #e10600 0%, #ff1e00 100%);
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .action-btn:hover {
+            background: linear-gradient(135deg, #ff1e00 0%, #ff3d00 100%);
+        }
+        .leaderboard {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .leaderboard th, .leaderboard td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        .leaderboard th { color: #ffd700; }
+        .events {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #e10600;">🏎️ RaceBrain F1 Strategy Game</h1>
+    
+    <div class="game-container">
+        <div class="panel player-panel">
+            <h2 style="color: #ffd700;">Your Team</h2>
+            <div id="playerStatus"></div>
+            <h3 style="margin-top: 20px;">Actions</h3>
+            <button class="action-btn" onclick="takeAction('STAY_OUT')">STAY OUT</button>
+            <button class="action-btn" onclick="takeAction('PIT_SOFT')">PIT → SOFT</button>
+            <button class="action-btn" onclick="takeAction('PIT_MEDIUM')">PIT → MEDIUM</button>
+            <button class="action-btn" onclick="takeAction('PIT_HARD')">PIT → HARD</button>
+        </div>
+        
+        <div class="panel">
+            <h2 style="color: #ffd700;">Race Status</h2>
+            <div id="raceInfo"></div>
+            <table class="leaderboard">
+                <thead>
+                    <tr><th>Pos</th><th>Team</th><th>Tyres</th><th>Age</th><th>Gap</th><th>Last Lap</th></tr>
+                </thead>
+                <tbody id="leaderboard"></tbody>
+            </table>
+            <div class="events"><h4>Recent Events</h4><div id="events"></div></div>
+        </div>
+        
+        <div class="panel ai-panel">
+            <h2 style="color: #ffd700;">AI Recommendations</h2>
+            <button class="action-btn" onclick="getRecommendations()">🤖 ASK AI AGENTS</button>
+            <div id="aiRecommendations"></div>
+        </div>
+    </div>
+    
+    <script>
+        let raceId = null;
+        let playerTeam = 'Ferrari';
+        
+        async function startGame() {
+            const res = await fetch('/api/game/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({team: playerTeam})
+            });
+            const data = await res.json();
+            raceId = data.race_id;
+            updateDisplay(data.state);
+        }
+        
+        async function takeAction(action) {
+            if (!raceId) return;
+            const res = await fetch('/api/game/action', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({race_id: raceId, team: playerTeam, action})
+            });
+            const data = await res.json();
+            updateDisplay(data.state);
+        }
+        
+        async function getRecommendations() {
+            if (!raceId) return;
+            const res = await fetch(`/api/game/recommendations/${raceId}/${playerTeam}`);
+            const data = await res.json();
+            let html = '<h3>Agent Votes:</h3>';
+            for (const [agent, rec] of Object.entries(data.recommendations)) {
+                const action = rec.pit ? `PIT → ${rec.compound}` : 'STAY';
+                html += `<div style="padding:10px;background:rgba(0,0,0,0.3);margin:5px 0;border-radius:4px;"><strong>${rec.agent}:</strong> ${action}<br>Confidence: ${(rec.confidence*100).toFixed(1)}%</div>`;
+            }
+            const cons = data.consensus;
+            const consAction = cons.pit ? `PIT → ${cons.compound}` : 'STAY';
+            html += `<div style="padding:15px;background:rgba(255,215,0,0.2);margin-top:10px;border:2px solid #ffd700;border-radius:6px;"><strong>CONSENSUS:</strong> ${consAction}<br>${cons.support} | ${(cons.confidence*100).toFixed(1)}%</div>`;
+            document.getElementById('aiRecommendations').innerHTML = html;
+        }
+        
+        function updateDisplay(state) {
+            document.getElementById('raceInfo').innerHTML = `<strong>Lap ${state.current_lap} / ${state.total_laps}</strong><br>Track: ${state.track}`;
+            let lb = '';
+            for (const car of state.cars) {
+                const h = car.team === playerTeam ? 'background:rgba(225,6,0,0.2);' : '';
+                lb += `<tr style="${h}"><td>P${car.position}</td><td>${car.team}</td><td>${car.compound}</td><td>${car.tyre_age}</td><td>${car.gap_ahead ? '+'+car.gap_ahead.toFixed(1)+'s' : 'Lead'}</td><td>${car.last_lap_time.toFixed(3)}s</td></tr>`;
+            }
+            document.getElementById('leaderboard').innerHTML = lb;
+            const pc = state.cars.find(c => c.team === playerTeam);
+            if (pc) {
+                document.getElementById('playerStatus').innerHTML = `<div style="font-size:1.2em;margin-bottom:10px;"><strong>Position:</strong> P${pc.position}<br><strong>Tyres:</strong> ${pc.compound} (${pc.tyre_age} laps)<br><strong>Pit Stops:</strong> ${pc.pit_stops}<br><strong>Last Lap:</strong> ${pc.last_lap_time.toFixed(3)}s</div>`;
+            }
+            let ev = '';
+            for (const e of state.events.reverse()) ev += `<div style="padding:5px 0;border-bottom:1px solid #333;font-size:0.9em;">Lap ${e.lap}: ${e.message}</div>`;
+            document.getElementById('events').innerHTML = ev;
+            if (state.finished) alert(`🏁 RACE FINISHED! Final Position: P${pc.position}`);
+        }
+        
+        startGame();
+    </script>
+</body>
+</html>

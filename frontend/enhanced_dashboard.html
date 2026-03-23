@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>RaceBrain - Enhanced Multi-Agent Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0d0d0d 0%, #1a0000 100%);
+            color: white; 
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        h1 { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            color: #e10600;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        /* LEFT SIDEBAR - CONTROLS */
+        .controls-panel {
+            background: rgba(26, 26, 26, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 5px solid #e10600;
+            height: fit-content;
+        }
+        
+        .controls-panel h2 {
+            color: #ffd700;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+        
+        .control-group input,
+        .control-group select {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: white;
+            font-size: 1em;
+        }
+        
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #e10600;
+        }
+        
+        button.primary { 
+            width: 100%;
+            background: linear-gradient(135deg, #e10600 0%, #ff1e00 100%);
+            color: white; 
+            padding: 15px; 
+            border: none; 
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(225, 6, 0, 0.4);
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        button.primary:hover { 
+            background: linear-gradient(135deg, #ff1e00 0%, #ff3d00 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(225, 6, 0, 0.6);
+        }
+        
+        /* RIGHT SIDE - RESULTS */
+        .results-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        
+        .agent { 
+            background: rgba(26, 26, 26, 0.9);
+            padding: 20px; 
+            border-left: 5px solid #e10600;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease;
+            position: relative;
+        }
+        
+        .agent:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(225, 6, 0, 0.4);
+        }
+        
+        .agent-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+        
+        .decision {
+            font-size: 1.4em;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .decision.pit { color: #e10600; }
+        .decision.stay { color: #00d4ff; }
+        
+        .confidence {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .why-btn {
+            background: #333;
+            color: #ffd700;
+            border: 1px solid #555;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-top: 8px;
+        }
+        
+        .why-btn:hover {
+            background: #444;
+            border-color: #ffd700;
+        }
+        
+        .explanation {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 215, 0, 0.1);
+            border-left: 3px solid #ffd700;
+            border-radius: 4px;
+            font-size: 0.85em;
+            line-height: 1.5;
+            display: none;
+        }
+        
+        .explanation.visible {
+            display: block;
+        }
+        
+        .consensus {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d0000 100%);
+            border: 3px solid #ffd700;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+        }
+        
+        .consensus h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 2em;
+        }
+        
+        .consensus .decision {
+            font-size: 2em;
+        }
+        
+        .state-display {
+            background: rgba(26, 26, 26, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 3px solid #00d4ff;
+        }
+        
+        .state-display h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        
+        .state-item {
+            display: inline-block;
+            margin-right: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .state-item strong {
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏎️ RaceBrain Multi-Agent Strategy System</h1>
+        
+        <div class="main-grid">
+            <!-- LEFT: CONTROLS -->
+            <div class="controls-panel">
+                <h2>⚙️ Race Configuration</h2>
+                
+                <div class="control-group">
+                    <label>Current Lap</label>
+                    <input type="number" id="lap" min="1" max="57" value="18">
+                </div>
+                
+                <div class="control-group">
+                    <label>Tyre Age (laps)</label>
+                    <input type="number" id="tyreAge" min="1" max="40" value="13">
+                </div>
+                
+                <div class="control-group">
+                    <label>Current Compound</label>
+                    <select id="compound">
+                        <option value="SOFT">SOFT</option>
+                        <option value="MEDIUM" selected>MEDIUM</option>
+                        <option value="HARD">HARD</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Track Position</label>
+                    <input type="number" id="position" min="1" max="20" value="4">
+                </div>
+                
+                <div class="control-group">
+                    <label>Already Pitted?</label>
+                    <select id="pitted">
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                    </select>
+                </div>
+                
+                <button class="primary" onclick="getRecommendations()">
+                    🚀 GET AI RECOMMENDATIONS
+                </button>
+                
+                <div class="state-display" id="currentState" style="margin-top: 20px; display: none;">
+                    <h3>📊 Current State</h3>
+                    <div id="stateInfo"></div>
+                </div>
+            </div>
+            
+            <!-- RIGHT: RESULTS -->
+            <div class="results-area" id="results">
+                <div style="text-align: center; color: #666; padding: 60px;">
+                    <p style="font-size: 1.2em;">Configure race parameters and click "GET AI RECOMMENDATIONS"</p>
+                    <p style="margin-top: 10px;">5 independent AI agents will analyze the situation</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    let currentData = null;
+    
+    async function getRecommendations() {
+        try {
+            const lap = parseInt(document.getElementById('lap').value);
+            const tyreAge = parseInt(document.getElementById('tyreAge').value);
+            const compound = document.getElementById('compound').value;
+            const position = parseInt(document.getElementById('position').value);
+            const pitted = document.getElementById('pitted').value === 'true';
+            
+            // Show current state
+            document.getElementById('currentState').style.display = 'block';
+            document.getElementById('stateInfo').innerHTML = `
+                <div class="state-item"><strong>Lap:</strong> ${lap}/57</div>
+                <div class="state-item"><strong>Position:</strong> P${position}</div>
+                <div class="state-item"><strong>Tyres:</strong> ${compound} (${tyreAge} laps)</div>
+                <div class="state-item"><strong>Pitted:</strong> ${pitted ? 'Yes' : 'No'}</div>
+            `;
+            
+            const response = await fetch('/api/recommend', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ lap, tyre_age: tyreAge, compound, position, pitted })
+            });
+            
+            const data = await response.json();
+            currentData = { data, state: { lap, tyreAge, compound, position, pitted } };
+            displayResults(data);
+        } catch (error) {
+            document.getElementById('results').innerHTML = 
+                '<div class="agent" style="border-color: red; text-align: center;">❌ Error: ' + error.message + '</div>';
+        }
+    }
+    
+    function displayResults(data) {
+        const results = document.getElementById('results');
+        
+        let html = '<h2 style="color: #ffd700; margin-bottom: 20px;">🤖 Agent Recommendations</h2>';
+        html += '<div class="agent-grid">';
+        
+        for (const [name, rec] of Object.entries(data.recommendations)) {
+            const action = rec.pit ? `PIT → ${rec.compound}` : 'STAY OUT';
+            const actionClass = rec.pit ? 'pit' : 'stay';
+            
+            html += `
+                <div class="agent">
+                    <div class="agent-name">${rec.agent}</div>
+                    <div class="decision ${actionClass}">${action}</div>
+                    <div class="confidence">Confidence: ${(rec.confidence * 100).toFixed(1)}%</div>
+                    <button class="why-btn" onclick="toggleExplanation('${name}')">💡 WHY?</button>
+                    <div class="explanation" id="exp-${name}"></div>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        
+        const cons = data.consensus;
+        const consAction = cons.pit ? `PIT → ${cons.compound}` : 'STAY OUT';
+        const consClass = cons.pit ? 'pit' : 'stay';
+        
+        html += `
+            <div class="consensus">
+                <h2>💡 AI CONSENSUS</h2>
+                <div class="decision ${consClass}">${consAction}</div>
+                <div style="margin-top: 15px; font-size: 1.2em;">
+                    <strong>Support:</strong> ${cons.support}<br>
+                    <strong>Confidence:</strong> ${(cons.confidence * 100).toFixed(1)}%
+                </div>
+            </div>
+        `;
+        
+        results.innerHTML = html;
+    }
+    
+    function toggleExplanation(agentName) {
+        const expDiv = document.getElementById(`exp-${agentName}`);
+        
+        if (expDiv.classList.contains('visible')) {
+            expDiv.classList.remove('visible');
+            return;
+        }
+        
+        // Generate explanation
+        const rec = currentData.data.recommendations[agentName];
+        const state = currentData.state;
+        
+        let explanation = generateExplanation(rec, state, agentName);
+        expDiv.innerHTML = explanation;
+        expDiv.classList.add('visible');
+    }
+    
+    function generateExplanation(rec, state, agentName) {
+        const agent = rec.agent;
+        let exp = `<strong>${agent}</strong><br><br>`;
+        
+        // Decision
+        if (rec.pit) {
+            exp += `✅ <strong>Recommends:</strong> PIT NOW → ${rec.compound}<br><br>`;
+        } else {
+            exp += `✅ <strong>Recommends:</strong> STAY OUT<br><br>`;
+        }
+        
+        // Context
+        exp += `📊 <strong>Situation:</strong> Lap ${state.lap}/57, P${state.position}, ${state.compound} tyres (${state.tyreAge} laps old)<br><br>`;
+        
+        // Agent-specific reasoning
+        exp += `🤔 <strong>Reasoning:</strong><br>`;
+        
+        if (agent.includes('Aggressive')) {
+            exp += 'This agent favors early pit stops to maximize track position. ';
+            if (rec.pit) {
+                exp += `Switching to ${rec.compound} now allows fresh tyres for the remaining race.`;
+            } else {
+                exp += 'Current tyres still competitive enough to maintain position.';
+            }
+        } else if (agent.includes('Conservative')) {
+            exp += 'This agent favors late pit stops to minimize uncertainty. ';
+            if (rec.pit) {
+                exp += `Tyre degradation has reached the point where pitting to ${rec.compound} is necessary.`;
+            } else {
+                exp += 'Current tyres can go longer before requiring a pit stop.';
+            }
+        } else if (agent.includes('Balanced')) {
+            exp += 'This agent seeks optimal timing balancing all factors. ';
+            if (rec.pit) {
+                exp += `Analysis indicates now is the optimal window to switch to ${rec.compound}.`;
+            } else {
+                exp += 'Staying out provides better race time based on current degradation.';
+            }
+        } else if (agent.includes('Q-Learning')) {
+            exp += 'This agent learned from historical race data. ';
+            exp += `Similar situations historically favored ${rec.pit ? 'pitting' : 'staying out'}.`;
+        } else if (agent.includes('Heuristic')) {
+            exp += 'This agent uses rule-based strategy. ';
+            if (state.tyreAge > 20) {
+                exp += `Tyres are ${state.tyreAge} laps old - typically requires pit stop.`;
+            } else {
+                exp += `Tyres are ${state.tyreAge} laps old - still within optimal window.`;
+            }
+        }
+        
+        return exp;
+    }
+    </script>
+</body>
+</html>

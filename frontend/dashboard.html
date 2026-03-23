@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaceBrain - Multi-Agent F1 Strategy AI</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <div class="top-bar">
+        <div class="logo-section">
+            <div class="logo">🏎️</div>
+            <div class="brand">
+                <h1>RACEBRAIN</h1>
+                <p>Multi-Agent Strategy AI</p>
+            </div>
+        </div>
+        <div class="track-info">
+            <span class="track-icon">🏁</span>
+            <span>Bahrain International Circuit</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Race State -->
+            <div class="section-card">
+                <h2 class="section-title">🏁 Race State</h2>
+                
+                <div class="state-display">
+                    <div class="state-item">
+                        <div class="state-label">Lap</div>
+                        <div class="state-value" id="displayLap">18 / 57</div>
+                    </div>
+                    <div class="state-item">
+                        <div class="state-label">Position</div>
+                        <div class="state-value" id="displayPosition">P4</div>
+                    </div>
+                    <div class="state-item">
+                        <div class="state-label">Tyre</div>
+                        <div class="state-value" id="displayTyre">🟡 MEDIUM</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration -->
+            <div class="section-card">
+                <h2 class="section-title">⚙️ Configuration</h2>
+                
+                <div class="config-grid">
+                    <div class="input-group">
+                        <label>Lap</label>
+                        <input type="number" id="lap" value="18" min="1" max="57" onchange="updateDisplay()">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Position</label>
+                        <input type="number" id="position" value="4" min="1" max="20" onchange="updateDisplay()">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Compound</label>
+                        <select id="compound" onchange="updateDisplay()">
+                            <option value="SOFT">🔴 SOFT</option>
+                            <option value="MEDIUM" selected>🟡 MEDIUM</option>
+                            <option value="HARD">⚪ HARD</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Tyre Age</label>
+                        <input type="number" id="tyre_age" value="13" min="0" max="40" onchange="updateDisplay()">
+                    </div>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="pitted">
+                    <label for="pitted">Already Pitted</label>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-primary glow" onclick="getRecommendations()">
+                        <span class="btn-icon">🤖</span>
+                        GET RECOMMENDATIONS
+                    </button>
+                </div>
+            </div>
+
+            <!-- Consensus -->
+            <div class="section-card consensus-panel" id="consensusCard" style="display:none;">
+                <h2 class="section-title">💡 AI Consensus</h2>
+                <div id="consensusContent"></div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content-area">
+            <!-- Agent Recommendations -->
+            <section class="agents-section">
+                <h2 class="section-title">🤖 Multi-Agent Recommendations</h2>
+                <div class="agents-grid" id="recommendationsGrid">
+                    <div class="empty-state">
+                        <div class="empty-icon">🎯</div>
+                        <p>Configure race parameters<br><strong>Then click "GET RECOMMENDATIONS"</strong></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts -->
+            <section class="charts-section">
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3 class="chart-title">📊 Agent Confidence</h3>
+                        <canvas id="confidenceChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3 class="chart-title">🎯 Decision Distribution</h3>
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

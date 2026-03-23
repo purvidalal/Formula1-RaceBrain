@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaceBrain - F1 Strategy Game with RAG</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* IMPROVED TEAM SELECTION SCREEN */
+        .selection-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            z-index: 1000;
+        }
+
+        .selection-panel {
+            background: linear-gradient(145deg, rgba(30, 30, 35, 0.95), rgba(45, 45, 50, 0.95));
+            border-radius: 24px;
+            padding: 50px;
+            max-width: 550px;
+            width: 90%;
+            border: 3px solid #E10600;
+            box-shadow: 0 20px 60px rgba(225, 6, 0, 0.4), 0 0 40px rgba(225, 6, 0, 0.2);
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.6s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .selection-title {
+            font-size: 52px;
+            text-align: center;
+            background: linear-gradient(135deg, #E10600, #FF4040);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            filter: drop-shadow(0 0 20px rgba(225, 6, 0, 0.5));
+        }
+
+        .selection-subtitle {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 45px;
+            font-size: 17px;
+            font-weight: 300;
+            letter-spacing: 1.5px;
+        }
+
+        .form-group {
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        .form-group:after {
+            content: '';
+            position: absolute;
+            bottom: -16px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(90deg, #E10600, transparent);
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #FF4040;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 18px 22px;
+            background: rgba(15, 15, 20, 0.9);
+            border: 2px solid rgba(225, 6, 0, 0.3);
+            border-radius: 14px;
+            color: #fff;
+            font-size: 17px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .form-select:hover {
+            border-color: #E10600;
+            background: rgba(20, 20, 25, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(225, 6, 0, 0.3);
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: #E10600;
+            background: rgba(20, 20, 25, 1);
+            box-shadow: 0 0 0 5px rgba(225, 6, 0, 0.2), 0 6px 16px rgba(225, 6, 0, 0.4);
+        }
+
+        .btn-start {
+            width: 100%;
+            padding: 22px;
+            background: linear-gradient(135deg, #E10600 0%, #FF1E1E 100%);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-size: 22px;
+            font-weight: 900;
+            cursor: pointer;
+            margin-top: 45px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            box-shadow: 0 10px 30px rgba(225, 6, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-start:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.6s;
+        }
+
+        .btn-start:hover:before {
+            left: 100%;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 40px rgba(225, 6, 0, 0.8);
+            background: linear-gradient(135deg, #FF1E1E 0%, #E10600 100%);
+        }
+
+        .btn-start:active {
+            transform: translateY(-2px);
+        }
+
+        /* GAME LAYOUT */
+        .game-container {
+            display: none;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #E10600 0%, #C00500 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 30px;
+            font-size: 16px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 320px 1fr 400px;
+            gap: 20px;
+        }
+
+        @media (max-width: 1400px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(28, 28, 35, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+
+        .panel-header {
+            font-size: 18px;
+            font-weight: 700;
+            color: #E10600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(225, 6, 0, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* PIT WALL */
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .info-label {
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .strategy-alert {
+            background: rgba(225, 6, 0, 0.1);
+            border: 2px solid #E10600;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .alert-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+
+        .urgency-low { color: #4CAF50; }
+        .urgency-medium { color: #FFC107; }
+        .urgency-high { color: #F44336; }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .btn-stay {
+            background: linear-gradient(135deg, #555 0%, #333 100%);
+            color: white;
+        }
+
+        .btn-pit {
+            background: linear-gradient(135deg, #7a1a1a 0%, #5a0a0a 100%);
+            color: white;
+        }
+
+        .btn-simulate {
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+            color: white;
+        }
+
+        /* LEADERBOARD */
+        .leaderboard {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .leaderboard th {
+            background: rgba(225, 6, 0, 0.2);
+            padding: 12px 8px;
+            text-align: left;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #E10600;
+        }
+
+        .leaderboard td {
+            padding: 12px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .leaderboard tr.player-row {
+            background: rgba(225, 6, 0, 0.2);
+            border-left: 4px solid #E10600;
+        }
+
+        .tyre-soft { color: #ff4444; }
+        .tyre-medium { color: #ffeb3b; }
+        .tyre-hard { color: #fff; }
+
+        .event-feed {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            padding: 8px 12px;
+            margin: 6px 0;
+            background: rgba(0,0,0,0.3);
+            border-left: 3px solid #E10600;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        /* AI PANEL */
+        .btn-ask-ai {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #E10600 0%, #C00500 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        .agent-card {
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #E10600;
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .confidence {
+            background: #4CAF50;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .agent-action {
+            font-size: 13px;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .consensus-box {
+            background: rgba(225, 6, 0, 0.1);
+            border: 2px solid #E10600;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .consensus-action {
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .consensus-details {
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* RAG EXPLANATION BOX */
+        .rag-explanation {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 4px solid #4CAF50;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            white-space: pre-line;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .rag-title {
+            font-weight: 700;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- TEAM SELECTION SCREEN -->
+    <div class="selection-screen" id="selectionScreen">
+        <div class="selection-panel">
+            <div class="selection-title">🏎️ RaceBrain</div>
+            <div class="selection-subtitle">F1 Strategy Game - Bahrain GP</div>
+            
+            <div class="form-group">
+                <label class="form-label">Choose Your Team</label>
+                <select class="form-select" id="teamSelect">
+                    <option value="Ferrari">Ferrari</option>
+                    <option value="McLaren">McLaren</option>
+                    <option value="Mercedes">Mercedes</option>
+                    <option value="Red Bull">Red Bull</option>
+                    <option value="Aston Martin">Aston Martin</option>
+                    <option value="Alpine">Alpine</option>
+                    <option value="Williams">Williams</option>
+                    <option value="Haas">Haas</option>
+                    <option value="Sauber">Sauber</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Choose Your Driver</label>
+                <select class="form-select" id="driverSelect">
+                    <option value="Charles Leclerc">Charles Leclerc</option>
+                    <option value="Lewis Hamilton">Lewis Hamilton</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Difficulty</label>
+                <select class="form-select" id="difficultySelect">
+                    <option value="easy">Easy - Relaxed pace</option>
+                    <option value="normal" selected>Normal - Balanced challenge</option>
+                    <option value="hard">Hard - Expert competition</option>
+                </select>
+            </div>
+
+            <button class="btn-start" onclick="startRace()">🏁 Start Race</button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div class="game-container" id="gameContainer">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <div class="header-title">🏎️ RaceBrain</div>
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Lap</div>
+                        <div class="stat-value" id="headerLap">1/57</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Position</div>
+                        <div class="stat-value" id="headerPosition">P5</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Gap</div>
+                        <div class="stat-value" id="headerGap">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Tyres</div>
+                        <div class="stat-value" id="headerTyres">SOFT</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Track</div>
+                        <div class="stat-value">Bahrain</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- LEFT PANEL - PIT WALL -->
+            <div class="panel">
+                <div class="panel-header">🏁 Pit Wall</div>
+                
+                <div class="info-row">
+                    <span class="info-label">Team:</span>
+                    <span class="info-value" id="pitTeam">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Driver:</span>
+                    <span class="info-value" id="pitDriver">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Position:</span>
+                    <span class="info-value" id="pitPosition">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Tyres:</span>
+                    <span class="info-value" id="pitTyres">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Pit Stops:</span>
+                    <span class="info-value" id="pitStops">0</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Last Lap:</span>
+                    <span class="info-value" id="pitLastLap">-</span>
+                </div>
+
+                <div class="strategy-alert">
+                    <div style="font-weight: 700; margin-bottom: 10px; color: #E10600;">⚠️ Strategy Alert</div>
+                    <div class="alert-row">
+                        <span>Tyre Wear:</span>
+                        <span id="alertWear">-</span>
+                    </div>
+                    <div class="alert-row">
+                        <span>Pit Window:</span>
+                        <span id="alertWindow">-</span>
+                    </div>
+                    <div class="alert-row">
+                        <span>Nearest Threat:</span>
+                        <span id="alertThreat">-</span>
+                    </div>
+                    <div class="alert-row">
+                        <span>Urgency:</span>
+                        <span id="alertUrgency">-</span>
+                    </div>
+                </div>
+
+                <div style="font-weight: 700; margin: 20px 0 10px 0; color: #E10600;">Strategy Call</div>
+                <div class="action-buttons">
+                    <button class="btn btn-stay" onclick="takeAction('STAY_OUT')">🏁 STAY OUT</button>
+                    <button class="btn btn-pit" onclick="takeAction('PIT_SOFT')">🔴 PIT → SOFT</button>
+                    <button class="btn btn-pit" onclick="takeAction('PIT_MEDIUM')">🟡 PIT → MEDIUM</button>
+                    <button class="btn btn-pit" onclick="takeAction('PIT_HARD')">⚪ PIT → HARD</button>
+                    <button class="btn btn-simulate" onclick="simulateNextLap()">🏎️ SIMULATE NEXT LAP</button>
+                </div>
+            </div>
+
+            <!-- CENTER PANEL - LEADERBOARD -->
+            <div class="panel">
+                <div class="panel-header">🏁 Live Race Control</div>
+                <div style="font-weight: 700; margin-bottom: 10px; font-size: 20px;" id="raceLap">Lap 1/57</div>
+                
+                <table class="leaderboard">
+                    <thead>
+                        <tr>
+                            <th>POS</th>
+                            <th>TEAM</th>
+                            <th>TYRES</th>
+                            <th>AGE</th>
+                            <th>GAP</th>
+                            <th>LAST LAP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody">
+                    </tbody>
+                </table>
+
+                <div style="margin-top: 20px; font-weight: 700; color: #E10600;">Recent Events</div>
+                <div class="event-feed" id="eventFeed"></div>
+            </div>
+
+            <!-- RIGHT PANEL - AI STRATEGY -->
+            <div class="panel">
+                <div class="panel-header">🤖 AI Strategy Briefing</div>
+                
+                <button class="btn-ask-ai" onclick="askAI()">🤖 ASK AI AGENTS</button>
+                
+                <div id="aiRecommendations" style="display: none;">
+                    <div id="agentCards"></div>
+                    <div class="consensus-box">
+                        <div style="font-weight: 700; color: #E10600; margin-bottom: 10px;">🎯 CONSENSUS</div>
+                        <div class="consensus-action" id="consensusAction">-</div>
+                        <div class="consensus-details" id="consensusDetails">-</div>
+                    </div>
+                </div>
+                
+                <div id="aiPlaceholder" style="text-align: center; color: rgba(255,255,255,0.5); padding: 40px 20px;">
+                    Click button to get AI recommendations
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let raceId = null;
+        let playerTeam = null;
+        let playerDriver = null;
+
+        const TEAM_DRIVERS = {
+            "McLaren": ["Lando Norris", "Oscar Piastri"],
+            "Ferrari": ["Charles Leclerc", "Lewis Hamilton"],
+            "Mercedes": ["George Russell", "Kimi Antonelli"],
+            "Red Bull": ["Max Verstappen", "Sergio Perez"],
+            "Aston Martin": ["Fernando Alonso", "Lance Stroll"],
+            "Alpine": ["Pierre Gasly", "Esteban Ocon"],
+            "Williams": ["Alex Albon", "Logan Sargeant"],
+            "Haas": ["Nico Hulkenberg", "Kevin Magnussen"],
+            "Sauber": ["Valtteri Bottas", "Zhou Guanyu"]
+        };
+
+        document.getElementById('teamSelect').addEventListener('change', function() {
+            const team = this.value;
+            const driverSelect = document.getElementById('driverSelect');
+            driverSelect.innerHTML = '';
+            
+            TEAM_DRIVERS[team].forEach(driver => {
+                const option = document.createElement('option');
+                option.value = driver;
+                option.textContent = driver;
+                driverSelect.appendChild(option);
+            });
+        });
+
+        async function startRace() {
+            playerTeam = document.getElementById('teamSelect').value;
+            playerDriver = document.getElementById('driverSelect').value;
+            const difficulty = document.getElementById('difficultySelect').value;
+
+            try {
+                const response = await fetch('/api/game/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        team: playerTeam,
+                        difficulty: difficulty
+                    })
+                });
+
+                const data = await response.json();
+                raceId = data.race_id;
+
+                document.getElementById('selectionScreen').style.display = 'none';
+                document.getElementById('gameContainer').style.display = 'block';
+
+                updateUI(data.state);
+                addEvent(1, `🏁 Race Start! ${playerDriver} (${playerTeam}) is ready.`);
+            } catch (error) {
+                alert('Failed to start race: ' + error.message);
+            }
+        }
+
+        async function takeAction(action) {
+            if (!raceId) return;
+            
+            try {
+                const response = await fetch('/api/game/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        race_id: raceId,
+                        team: playerTeam,
+                        action: action
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    alert('Action failed: ' + (data.detail || JSON.stringify(data)));
+                    return;
+                }
+                
+                if (!data.state) {
+                    alert('Invalid response from server');
+                    console.error('Response:', data);
+                    return;
+                }
+                
+                updateUI(data.state);
+                
+                if (action !== 'STAY_OUT') {
+                    const compound = action.replace('PIT_', '');
+                    addEvent(data.state.current_lap, `🔧 ${playerDriver} dives into the pits for ${compound} tyres`);
+                }
+                
+                if (data.finished) {
+                    addEvent(data.state.current_lap, `🏁 RACE FINISHED!`);
+                    const finalPos = getCurrentPlayerCar(data.state).position;
+                    alert(`🏁 Race Finished!\n\n${playerDriver} finishes in P${finalPos}!`);
+                }
+            } catch (error) {
+                alert('Action failed: ' + error.message);
+            }
+        }
+
+        async function simulateNextLap() {
+            await takeAction('STAY_OUT');
+        }
+
+        async function askAI() {
+            if (!raceId) return;
+
+            try {
+                const response = await fetch(`/api/game/recommendations/${raceId}/${playerTeam}`);
+                const data = await response.json();
+
+                displayAIRecommendations(data);
+            } catch (error) {
+                alert('Failed to get AI recommendations: ' + error.message);
+            }
+        }
+
+        function displayAIRecommendations(data) {
+            document.getElementById('aiPlaceholder').style.display = 'none';
+            document.getElementById('aiRecommendations').style.display = 'block';
+
+            const cardsContainer = document.getElementById('agentCards');
+            cardsContainer.innerHTML = '';
+
+            data.recommendations.forEach(rec => {
+                const card = document.createElement('div');
+                card.className = 'agent-card';
+                card.innerHTML = `
+                    <div class="agent-header">
+                        <span class="agent-name">${rec.agent}</span>
+                        <span class="confidence">${(rec.confidence * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="agent-action">${formatAction(rec.action)}</div>
+                `;
+                cardsContainer.appendChild(card);
+            });
+
+            document.getElementById('consensusAction').textContent = formatAction(data.consensus.action);
+            document.getElementById('consensusDetails').textContent = 
+                `${data.consensus.votes}/5 agents • ${(data.consensus.confidence * 100).toFixed(1)}% confidence`;
+            
+            // ADD RAG EXPLANATION
+            const existingExplanation = document.getElementById('ragExplanation');
+            if (existingExplanation) {
+                existingExplanation.remove();
+            }
+            
+            if (data.explanation) {
+                const explanationBox = document.createElement('div');
+                explanationBox.id = 'ragExplanation';
+                explanationBox.className = 'rag-explanation';
+                
+                const formattedExplanation = data.explanation
+                    .replace(/\*\*(.+?)\*\*/g, '<strong style="color: #4CAF50;">$1</strong>')
+                    .replace(/• /g, '• ');
+                
+                explanationBox.innerHTML = `
+                    <div class="rag-title">💡 AI Reasoning</div>
+                    <div>${formattedExplanation}</div>
+                `;
+                
+                document.getElementById('aiRecommendations').appendChild(explanationBox);
+            }
+        }
+
+        function updateUI(state) {
+            const playerCar = getCurrentPlayerCar(state);
+            
+            // Header
+            document.getElementById('headerLap').textContent = `${state.current_lap}/57`;
+            document.getElementById('headerPosition').textContent = `P${playerCar.position}`;
+            document.getElementById('headerGap').textContent = playerCar.gap_ahead ? `+${playerCar.gap_ahead}s` : 'Lead';
+            document.getElementById('headerTyres').textContent = playerCar.compound;
+
+            // Pit Wall
+            document.getElementById('pitTeam').textContent = playerTeam;
+            document.getElementById('pitDriver').textContent = playerDriver;
+            document.getElementById('pitPosition').textContent = `P${playerCar.position}`;
+            document.getElementById('pitTyres').textContent = `${playerCar.compound} (${playerCar.tyre_age} laps)`;
+            document.getElementById('pitStops').textContent = playerCar.pit_stops;
+            document.getElementById('pitLastLap').textContent = playerCar.last_lap_time ? 
+                `${playerCar.last_lap_time.toFixed(3)}s` : '-';
+
+            // Strategy Alert
+            updateStrategyAlert(playerCar, state);
+
+            // Leaderboard
+            document.getElementById('raceLap').textContent = `Lap ${state.current_lap}/57`;
+            updateLeaderboard(state);
+        }
+
+        function updateStrategyAlert(playerCar, state) {
+            const tyreAge = playerCar.tyre_age;
+            let wear, wearColor;
+            
+            if (tyreAge < 15) {
+                wear = 'Stable';
+                wearColor = '#4CAF50';
+            } else if (tyreAge < 25) {
+                wear = 'High';
+                wearColor = '#FFC107';
+            } else {
+                wear = 'Critical';
+                wearColor = '#F44336';
+            }
+
+            document.getElementById('alertWear').innerHTML = `<span style="color: ${wearColor}">${wear}</span>`;
+
+            const pitWindow = playerCar.has_pitted ? 'Closed' : 
+                (state.current_lap < 10 ? `Opens in ${10 - state.current_lap} laps` : 'OPEN');
+            document.getElementById('alertWindow').textContent = pitWindow;
+
+            const carBehind = state.cars.find(c => c.position === playerCar.position + 1);
+            let threat = 'None';
+            if (carBehind) {
+                const gap = carBehind.gap_ahead;
+                const gapStr = gap ? String(gap).replace('+', '') : '0.0s';
+                threat = `${carBehind.team} (${gapStr})`;
+            }
+            document.getElementById('alertThreat').textContent = threat;
+
+            let urgency, urgencyClass;
+            if (tyreAge > 25 || (carBehind && parseFloat(carBehind.gap_ahead || '99') < 2)) {
+                urgency = 'HIGH';
+                urgencyClass = 'urgency-high';
+            } else if (tyreAge > 15) {
+                urgency = 'MEDIUM';
+                urgencyClass = 'urgency-medium';
+            } else {
+                urgency = 'LOW';
+                urgencyClass = 'urgency-low';
+            }
+            document.getElementById('alertUrgency').innerHTML = `<span class="${urgencyClass}">${urgency}</span>`;
+        }
+
+        function updateLeaderboard(state) {
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = '';
+
+            state.cars.forEach(car => {
+                const row = document.createElement('tr');
+                if (car.team === playerTeam) {
+                    row.className = 'player-row';
+                }
+
+                const tyreClass = `tyre-${car.compound.toLowerCase()}`;
+                
+                row.innerHTML = `
+                    <td>P${car.position}</td>
+                    <td>${car.team}</td>
+                    <td class="${tyreClass}">${car.compound}</td>
+                    <td>${car.tyre_age}</td>
+                    <td>${car.gap_ahead || 'Lead'}</td>
+                    <td>${car.last_lap_time ? car.last_lap_time.toFixed(3) + 's' : '-'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function getCurrentPlayerCar(state) {
+            return state.cars.find(c => c.team === playerTeam);
+        }
+
+        function formatAction(action) {
+            if (action === 'STAY_OUT') return '🏁 STAY OUT';
+            if (action === 'PIT_SOFT') return '🔴 PIT → SOFT';
+            if (action === 'PIT_MEDIUM') return '🟡 PIT → MEDIUM';
+            if (action === 'PIT_HARD') return '⚪ PIT → HARD';
+            return action;
+        }
+
+        function addEvent(lap, message) {
+            const feed = document.getElementById('eventFeed');
+            const event = document.createElement('div');
+            event.className = 'event-item';
+            event.innerHTML = `<strong>Lap ${lap}</strong> ${message}`;
+            feed.insertBefore(event, feed.firstChild);
+
+            if (feed.children.length > 10) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+    </script>
+</body>
+</html>
